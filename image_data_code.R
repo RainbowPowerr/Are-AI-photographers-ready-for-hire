@@ -12,7 +12,7 @@ prompt_sample <- sample(x = promt, size = 1000, replace = TRUE,
 )
 
 # sample n = 1000 for the other variables
-guidance <- round(runif(n = 1000, min = 2, max = 20), digits = 1) # rounded to one decimal
+guidance <- round(runif(n = 1000, min = 1, max = 20), digits = 1) # rounded to one decimal
 
 xtra_prompt <-  rbinom(n = 1000, size = 1, prob = 0.5)
 
