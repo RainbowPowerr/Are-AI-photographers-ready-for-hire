@@ -43,6 +43,31 @@ df$image[ df$guide_image_bin == 0] <- "none"
 
 #inf_steps<- round(runif(n = 100, min = 50, max = 250), digits = 0)
 
+
+#skapar ett index
+df$index <- NA
+df$index <- 0:999
+
+# plockar ut de observationer utan guide_image
+index<- df$index[df$image == "none"]
+
+#Skapar ny df med obs utan guide image
+index_id<- df$index[df$image == "none"]
+prompt_id<- df$prompt[df$image == "none"]
+guidance_id<- df$guidance[df$image == "none"]
+inf_steps_id<- df$inf_steps[df$image == "none"]
+xtra_prompt_id<- df$xtra_prompt[df$image == "none"]
+
+df_index <- data.frame(index = index_id,
+                       prompt = prompt_id,
+                 guidance = guidance_id,
+                 inf_steps = inf_steps_id,
+                 xtra_prompt = xtra_prompt_id)
+
 # save df as a .csv
 write.csv(df, file = "image_data.csv")
+
+write.csv(index, file = "index.csv")
+
+write.csv(df_index, file = "image_data_with_index.csv")
 
