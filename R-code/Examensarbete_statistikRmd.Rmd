@@ -1,0 +1,88 @@
+---
+title: "PMrmd"
+author: "Isac Jonsson"
+date: "2022-10-06"
+output: 
+#html_document
+  pdf_document:
+    keep_tex: yes 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(kableExtra) #Here I put any libraries that I will use
+library('tinytex')
+library(ggplot2)
+library(knitr)
+library('latex2exp')
+library("Lock5Data")
+library('DescTools')
+library(HSAUR)
+library('ResourceSelection')
+library('cowplot')
+library(dplyr)
+```
+
+```{r}
+df <- read.csv('dataset.csv')
+
+df$housing <- ifelse(df$prompt == 'houseing', 1, 0)
+df$atumn <- ifelse(df$prompt == 'weather', 1, 0)
+df$boxes <- ifelse(df$prompt == 'bankruptcy', 1, 0)
+
+```
+
+```{r}
+
+guidance_mean <- mean(df$guidance)
+inf_step_mean <- mean(df$inf_steps) 
+xtra_prompt_mean <- mean(df$xtra_prompt)
+housing_mean <- mean(df$housing)
+atumn_mean <- mean(df$atumn)
+boxes_mean <- mean(df$boxes)
+
+MEAN <- rbind(guidance_mean, inf_step_mean, xtra_prompt_mean, housing_mean, atumn_mean, boxes_mean)
+
+guidance_sd <- sd(df$guidance) 
+inf_step_sd <- sd(df$inf_steps)
+xtra_prompt_sd <- " "
+housing_sd <- " "
+atumn_sd <- " "
+boxes_sd <- " "
+
+SD <- rbind(guidance_sd, inf_step_sd, xtra_prompt_sd, housing_sd, atumn_sd, boxes_sd) 
+
+guidance_min <- min(df$guidance)
+inf_step_min <- min(df$inf_steps)
+xtra_prompt_min <- min(df$xtra_prompt)
+housing_min <- " "
+atumn_min <- " "
+boxes_min <- " "
+
+MIN <- rbind(guidance_min, inf_step_min, xtra_prompt_min, housing_min, atumn_min, boxes_min)
+
+guidance_max <- max(df$guidance)
+inf_step_max <- max(df$inf_steps)
+xtra_prompt_max <- max(df$xtra_prompt)
+housing_max <- " "
+atumn_max <- " "
+boxes_max <- " "
+
+MAX <- rbind(guidance_max, inf_step_max, xtra_prompt_max, housing_max, atumn_max, boxes_max)
+
+sumtab <- as.data.frame(cbind(MEAN, SD, MIN, MAX), row.names = c('Guidance scale', 'Inference steps', 'Keywords', 'Housing', 'Atumn', 'Bankruptcy'))
+
+sumtab$V1 <- round(as.numeric(sumtab$V1), 2 )
+sumtab$V2 <- c(round(as.numeric(sumtab$V2[1:2]), 2), sumtab$V2[3:6])
+
+kable(sumtab, caption = "Table X Descriptive statistics of the dataset",
+      booktabs = TRUE, align ='c', col.names = c('Mean', 'Std. error', 'Min' , 'Max'),  position = "h!") %>%
+     column_spec(1,width = '3cm') %>%
+      column_spec(2,width = '2cm') %>%
+      column_spec(3,width = '2cm') %>%
+      column_spec(4,width = '2cm') %>%
+   kable_styling(latex_options = "striped")
+
+```
+
