@@ -1,6 +1,6 @@
 ---
-title: "PMrmd"
-author: "Isac Jonsson"
+title: "Bachelor thesis"
+author: "Isac Jonsson & Andrea Breuer"
 date: "2022-10-06"
 output: 
 #html_document
@@ -22,19 +22,42 @@ library(HSAUR)
 library('ResourceSelection')
 library('cowplot')
 library(dplyr)
+library(readxl)
+library(foreign)
+library(MASS)
+library(Hmisc)
+library(reshape2)
 ```
 
 ```{r}
+# Loading the dataframes
+
 df <- read.csv('dataset.csv')
 
 df$housing <- ifelse(df$prompt == 'houseing', 1, 0)
 df$atumn <- ifelse(df$prompt == 'weather', 1, 0)
 df$boxes <- ifelse(df$prompt == 'bankruptcy', 1, 0)
 
+anno_df <- read_excel("C:/Users/Jonss/Downloads/Image Annotation.xlsx",  sheet = "Annotation for Newsworthy Batch")
+
+anno_df <- anno_df[1:4]
+anno_df <- na.omit(anno_df)
+colnames(anno_df) <- c('index', 'scale_1_5', 'publish', 'reason')
+anno_df$publish <- as.numeric(anno_df$publish)
+
+anno_df$publish_bin <- ifelse(anno_df$publish == 5 , 1, 0)
+
+
+
+df_tot <- merge(df, anno_df, by = 'index')
+
+
 ```
 
 ```{r}
+# Descriptive table 
 
+scale_mean <- mean(df_tot$scale_1_5)
 guidance_mean <- mean(df$guidance)
 inf_step_mean <- mean(df$inf_steps) 
 xtra_prompt_mean <- mean(df$xtra_prompt)
@@ -42,8 +65,9 @@ housing_mean <- mean(df$housing)
 atumn_mean <- mean(df$atumn)
 boxes_mean <- mean(df$boxes)
 
-MEAN <- rbind(guidance_mean, inf_step_mean, xtra_prompt_mean, housing_mean, atumn_mean, boxes_mean)
+MEAN <- rbind(scale_mean, guidance_mean, inf_step_mean, xtra_prompt_mean, housing_mean, atumn_mean, boxes_mean)
 
+scale_sd <- sd(df_tot$scale_1_5)
 guidance_sd <- sd(df$guidance) 
 inf_step_sd <- sd(df$inf_steps)
 xtra_prompt_sd <- " "
@@ -51,8 +75,9 @@ housing_sd <- " "
 atumn_sd <- " "
 boxes_sd <- " "
 
-SD <- rbind(guidance_sd, inf_step_sd, xtra_prompt_sd, housing_sd, atumn_sd, boxes_sd) 
+SD <- rbind(scale_sd, guidance_sd, inf_step_sd, xtra_prompt_sd, housing_sd, atumn_sd, boxes_sd) 
 
+scale_min <- min(df_tot$scale_1_5)
 guidance_min <- min(df$guidance)
 inf_step_min <- min(df$inf_steps)
 xtra_prompt_min <- min(df$xtra_prompt)
@@ -60,8 +85,9 @@ housing_min <- " "
 atumn_min <- " "
 boxes_min <- " "
 
-MIN <- rbind(guidance_min, inf_step_min, xtra_prompt_min, housing_min, atumn_min, boxes_min)
+MIN <- rbind(scale_min, guidance_min, inf_step_min, xtra_prompt_min, housing_min, atumn_min, boxes_min)
 
+scale_max <- max(df_tot$scale_1_5)
 guidance_max <- max(df$guidance)
 inf_step_max <- max(df$inf_steps)
 xtra_prompt_max <- max(df$xtra_prompt)
@@ -69,12 +95,12 @@ housing_max <- " "
 atumn_max <- " "
 boxes_max <- " "
 
-MAX <- rbind(guidance_max, inf_step_max, xtra_prompt_max, housing_max, atumn_max, boxes_max)
+MAX <- rbind(scale_max, guidance_max, inf_step_max, xtra_prompt_max, housing_max, atumn_max, boxes_max)
 
-sumtab <- as.data.frame(cbind(MEAN, SD, MIN, MAX), row.names = c('Guidance scale', 'Inference steps', 'Keywords', 'Housing', 'Atumn', 'Bankruptcy'))
+sumtab <- as.data.frame(cbind(MEAN, SD, MIN, MAX), row.names = c('Rating', 'Guidance scale', 'Inference steps', 'Keywords', 'Housing', 'Atumn', 'Bankruptcy'))
 
 sumtab$V1 <- round(as.numeric(sumtab$V1), 2 )
-sumtab$V2 <- c(round(as.numeric(sumtab$V2[1:2]), 2), sumtab$V2[3:6])
+sumtab$V2 <- c(round(as.numeric(sumtab$V2[2:3]), 2), sumtab$V2[c(1,4:7)])
 
 kable(sumtab, caption = "Table X Descriptive statistics of the dataset",
       booktabs = TRUE, align ='c', col.names = c('Mean', 'Std. error', 'Min' , 'Max'),  position = "h!") %>%
@@ -82,7 +108,114 @@ kable(sumtab, caption = "Table X Descriptive statistics of the dataset",
       column_spec(2,width = '2cm') %>%
       column_spec(3,width = '2cm') %>%
       column_spec(4,width = '2cm') %>%
+      column_spec(5,width = '2cm') %>%
    kable_styling(latex_options = "striped")
 
+```
+
+```{r}
+# Log-uniform distribution for inf_steps
+
+ggplot(df, aes(x=inf_steps)) +
+  geom_histogram(binwidth = 5, color = "white", fill = "slategray") +
+  theme_minimal() +
+  xlab('Iterations') +
+  ylab('Frequency') +
+  coord_cartesian(expand = FALSE, xlim = c(45, NA), ylim = c(0, NA)) 
+
+```
+
+```{r}
+# Barplot of reasons not to publish 
+
+real <- sum(with(df_tot, reason == 'No, not realistic enough'))
+style <- sum(with(df_tot, reason == 'No, wrong tone/style'))
+other <- sum(with(df_tot, reason == 'No, other reason'))
+comp <- sum(with(df_tot, reason == 'No, bad composition'))
+qual <- sum(with(df_tot, reason == 'No, bad image quality'))
+yes <- sum(with(df_tot, reason == 'Yes'))
+
+bars <- data.frame(numbers = c(comp, qual, real, other, style, yes))
+
+bars$text <- c('No, bad composition', 'No, bad image quality', 'No, not realistic enough', 'No, other reason', 'No, wrong tone/style', 'Yes')
+
+ggplot(bars, aes(x=text, y= numbers)) + 
+  geom_bar(fill = c("slategray", "slategray", "slategray", "slategray", "slategray", 'green4'), position = 'dodge', stat='identity') +
+    geom_text(aes(label=numbers), position=position_dodge(width=0.9), vjust=-0.25) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 60, vjust = 0.5))
+```
+
+
+```{r}
+### Ordinal reg ###
+
+# Split dfs 
+df_atumn <- df_tot[(df_tot$atumn == 1),]
+df_housing <- df_tot[(df_tot$housing == 1),]
+df_boxes <- df_tot[(df_tot$boxes == 1),]
+df_atbox <- df_tot[(df_tot$atumn == 1| (df_tot$boxes == 1)),]
+
+
+# df_tot
+df_tot$guidance2 <- df_tot$guidance^2
+df_tot$log_inf_steps <- log(df_tot$inf_steps)
+df_tot$scale_1_5 <- as.factor(df_tot$scale_1_5)
+
+# df_atbox
+df_atbox$scale_1_5 <- as.factor(df_atbox$scale_1_5)
+
+
+ord.output <- polr(scale_1_5 ~ guidance + guidance2 + inf_steps + xtra_prompt + atumn,
+                   data = df_tot)
+
+ctable <- coef(summary(ord.output))
+p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) * 2
+ctable <- cbind(ctable, "p value" = p)
+
+
+# Reg table (Lägg till N?)
+kable(ctable, caption = "Table X Descriptive statistics of the dataset",
+      booktabs = TRUE, align ='c',  position = "h!") %>%
+     column_spec(1,width = '3cm') %>%
+      column_spec(2,width = '2cm') %>%
+      column_spec(3,width = '2cm') %>%
+      column_spec(4,width = '2cm') %>%
+      column_spec(5,width = '2cm') %>%
+   kable_styling(latex_options = "striped")
+
+```
+
+```{r}
+# Reg cont.
+
+oddsratio <- exp(ord.output$coefficients)
+
+# Fit measures 
+mcfadden <- PseudoR2(x = ord.output, which = "McFadden")
+
+# Kan funka med dummies för den kategorin som är störst
+# confmx <- table(round(ord.output$fitted.values), df_tot$scale_1_5)
+```
+
+
+
+```{r}
+# ordinal reg plot 
+
+#ord.pred <- data.frame(prob.scale = ord.output$fitted.values, scale = df_tot$scale_1_5)
+
+#ord.pred <- ord.pred[order(ord.pred$prob.publish, decreasing = F), ]
+
+#ord.pred$rank <- 1:nrow(ord.pred)
+
+#ggplot(ord.pred, aes(x=rank, y=prob.scale)) + 
+ # geom_point(aes(color=publish), alpha = 1, shape = 4, stroke = 2) +
+  #xlab('Index') +
+  #ylab('Predicted probability of each scale')
+  
+# För plots vid prediktion: https://www.r-bloggers.com/2019/06/how-to-perform-ordinal-logistic-regression-in-r/ 
+
+hist(df_tot$scale_1_5)
 ```
 
