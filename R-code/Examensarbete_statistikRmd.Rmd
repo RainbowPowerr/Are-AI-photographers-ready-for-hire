@@ -166,7 +166,7 @@ df_tot$scale_1_5 <- as.factor(df_tot$scale_1_5)
 df_atbox$scale_1_5 <- as.factor(df_atbox$scale_1_5)
 
 
-ord.output <- polr(scale_1_5 ~ guidance + guidance2 + inf_steps + xtra_prompt + atumn,
+ord.output <- polr(scale_1_5 ~ guidance + guidance2 + inf_steps + xtra_prompt + atumn + boxes,
                    data = df_tot)
 
 ctable <- coef(summary(ord.output))
@@ -194,8 +194,19 @@ oddsratio <- exp(ord.output$coefficients)
 # Fit measures 
 mcfadden <- PseudoR2(x = ord.output, which = "McFadden")
 
-# Kan funka med dummies för den kategorin som är störst
-# confmx <- table(round(ord.output$fitted.values), df_tot$scale_1_5)
+
+#Compute confusion table and misclassification error
+rating_pred <- predict(ord.output)
+confmx <- table(df_tot$scale_1_5, rating_pred)
+
+hit_rate <- sum(diag(confmx))/nrow(df_tot)
+max_chance <- sum(with(df_tot, scale_1_5 == 1))/nrow(df_tot)
+prop_chance <- sum((prop.table(table(df_tot$scale_1_5)))^2)
+
+# Refer to Hair et al. (2010, p. 265)
+random_guess_max <- 1.25*max_chance
+random_guess_prop <- 1.25*prop_chance
+
 ```
 
 
@@ -214,8 +225,6 @@ mcfadden <- PseudoR2(x = ord.output, which = "McFadden")
   #xlab('Index') +
   #ylab('Predicted probability of each scale')
   
-# För plots vid prediktion: https://www.r-bloggers.com/2019/06/how-to-perform-ordinal-logistic-regression-in-r/ 
-
-hist(df_tot$scale_1_5)
+hist(as.numeric(df_tot$scale_1_5))
 ```
 
