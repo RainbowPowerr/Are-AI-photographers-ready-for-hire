@@ -1,7 +1,7 @@
 ---
 title: "Bachelor thesis"
 author: "Isac Jonsson & Andrea Breuer"
-date: "2022-10-06"
+date: \today
 output: 
 #html_document
   pdf_document:
@@ -30,6 +30,7 @@ library(reshape2)
 library(car)
 library(ordinal)
 library(brant)
+library('gofcat')
 ```
 
 ```{r}
@@ -62,7 +63,6 @@ df_tot <- merge(df, anno_df, by = 'index')
 ```{r}
 # Descriptive table 
 
-# Lägg till pubilshable!
 scale_mean <- mean(df_tot$scale_1_5)
 guidance_mean <- mean(df$guidance)
 inf_step_mean <- mean(df$inf_steps) 
@@ -144,7 +144,7 @@ kable(sumtab, caption = "Table X Descriptive statistics of the dataset",
 ```
 
 ```{r}
-# Log-uniform distribution for inf_steps
+# Log-uniform distribution for Iterations
 
 ggplot(df, aes(x=inf_steps)) +
   geom_histogram(binwidth = 5, color = "white", fill = "slategray") +
@@ -158,7 +158,7 @@ ggplot(df, aes(x=inf_steps)) +
 ```
 
 ```{r}
-# Barplot of reasons not to publish 
+# Barplot of "Would you publish this image?" 
 
 real <- sum(with(df_tot, reason == 'No, not realistic enough'))
 style <- sum(with(df_tot, reason == 'No, wrong tone/style'))
@@ -185,7 +185,7 @@ ggplot(bars, aes(x=text, y= numbers)) +
 ```
 
 ```{r}
-# Barplot av fördelningen i Scale_1_5
+# Barplot for the distribution of Rating
 
 r1 <- sum(with(df_tot, scale_1_5 == 1))
 r2 <- sum(with(df_tot, scale_1_5 == 2))
@@ -206,11 +206,9 @@ ggplot(rating, aes(x=scale, y=numbers )) +
   theme(axis.text.x = element_text(size = 26), 
         axis.title.x = element_text(size = 34), axis.text.y = element_text(size = 26), text= element_text(family = 'Times'))
 
-
-
 ```
 ```{r}
-# Barplot Scale för housing
+# Barplot of rating for housing
 
 r1 <- sum(with(df_tot[df_tot$housing == 1,], scale_1_5 == 1))
 r2 <- sum(with(df_tot[df_tot$housing == 1,], scale_1_5 == 2))
@@ -233,6 +231,7 @@ ggplot(rating, aes(x=scale, y=numbers )) +
 
 ```
 ```{r}
+# Barplot of rating for atumn
 r1 <- sum(with(df_tot[df_tot$atumn == 1,], scale_1_5 == 1))
 r2 <- sum(with(df_tot[df_tot$atumn == 1,], scale_1_5 == 2))
 r3 <- sum(with(df_tot[df_tot$atumn == 1,], scale_1_5 == 3))
@@ -254,6 +253,8 @@ ggplot(rating, aes(x=scale, y=numbers )) +
 ```
 
 ```{r}
+# Barplot of rating for bankruptcy
+
 r1 <- sum(with(df_tot[df_tot$boxes == 1,], scale_1_5 == 1))
 r2 <- sum(with(df_tot[df_tot$boxes == 1,], scale_1_5 == 2))
 r3 <- sum(with(df_tot[df_tot$boxes == 1,], scale_1_5 == 3))
@@ -274,6 +275,8 @@ ggplot(rating, aes(x=scale, y=numbers )) +
 ```
 
 ```{r}
+# Barplot of number of publishable images per category
+
 # Split dfs 
 df_atumn <- df_tot[(df_tot$atumn == 1),]
 df_housing <- df_tot[(df_tot$housing == 1),]
@@ -322,8 +325,7 @@ kable(cormat, caption = "Table X Correlation matrix of the variables", digits = 
 
 
 ```{r}
-### Ordinal reg ###
-
+### Ordinal regression ###
 
 # df_tot
 df_tot$guidance2 <- df_tot$guidance^2
@@ -331,7 +333,7 @@ df_tot$log_inf_steps <- log(df_tot$inf_steps)
 df_tot$scale_1_5 <- as.factor(df_tot$scale_1_5)
 df_tot$log_inf_steps <- log(df_tot$inf_steps)
 
-# Ordinal regression, alternativt log(inf_steps) då det är mer rimligt och blir samma resultat
+# Ordinal regression
 ord.output <- polr(scale_1_5 ~ guidance + guidance2 + log_inf_steps + xtra_prompt + atumn + boxes,
                    data = df_tot, Hess = T)
 
@@ -340,7 +342,7 @@ p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) * 2
 ctable <- cbind(ctable, "p value" = p)
 ctable <- ctable[,c(1:2, 4)]
 
-# Reg table (Lägg till N?)
+# Regression table
 kable(ctable, caption = "Table X Ordinal logistic regression results", digits = 4,
       booktabs = TRUE, align ='c',  position = "h!", col.names = c('Estimate', 'Std. error', 'P-value')) %>%
      column_spec(1,width = '3cm') %>%
@@ -351,30 +353,6 @@ kable(ctable, caption = "Table X Ordinal logistic regression results", digits = 
 
 ```
 
-```{r}
-# Regression med endast atumn och boxes
-
-# df_atbox
-df_atbox$scale_1_5 <- as.factor(df_atbox$scale_1_5)
-df_atbox$guidance2 <- df_atbox$guidance^2
-
-ord.output_atbox <- polr(scale_1_5 ~ guidance + guidance2 + log(inf_steps) + xtra_prompt + atumn,
-                   data = df_atbox)
-
-ctable_atbox <- coef(summary(ord.output_atbox))
-p <- pnorm(abs(ctable_atbox[, "t value"]), lower.tail = FALSE) * 2
-ctable_atbox <- cbind(ctable_atbox, "p value" = p)
-
-# Reg table (Lägg till N?)
-kable(ctable_atbox, caption = "Table X Ordinal logistic regression results excluding housing", digits = 4,
-      booktabs = TRUE, align ='c',  position = "h!") %>%
-     column_spec(1,width = '3cm') %>%
-      column_spec(2,width = '2cm') %>%
-      column_spec(3,width = '2cm') %>%
-      column_spec(4,width = '2cm') %>%
-      column_spec(5,width = '2cm') %>%
-   kable_styling(latex_options = "striped")
-```
 
 
 ```{r}
@@ -390,21 +368,9 @@ kable(oddsratio, caption = "Table X Odds ratio of the coefficients", digits = 4,
 
 
 ```{r}
-# Reg cont.
+## Regression continue ##
 
 Nobs <- nrow(df_tot)
-
-#Compute confusion table and misclassification error
-rating_pred <- predict(ord.output)
-confmx <- table(df_tot$scale_1_5, rating_pred)
-
-hit_rate <- sum(diag(confmx))/nrow(df_tot)
-max_chance <- sum(with(df_tot, scale_1_5 == 1))/nrow(df_tot)
-prop_chance <- sum((prop.table(table(df_tot$scale_1_5)))^2)
-
-# Refer to Hair et al. (2010, p. 265)
-random_guess_max <- 1.25*max_chance
-random_guess_prop <- 1.25*prop_chance
 
 # Proportional odds test 
 clm.model <- clm(scale_1_5 ~ guidance + guidance2 + log_inf_steps + xtra_prompt + atumn + boxes,
@@ -428,15 +394,12 @@ kable(prop_odds_test, caption = "Test of proportional odds assumption", digits =
 
 ```{r}
 ## Fit measures ##
-# mcfadden <- PseudoR2(x = ord.output, which = "McFadden")
 
-library('gofcat')
 
 # Ugbas modified Mcfadden measure med log eller squared penalty
 ugba_R2 <- Rsquared(ord.output, measure = 'ugba')
 
 
-# Gör tabell av de två testen
 # Hosmer–Lemeshow test
 hosmer <- hosmerlem(ord.output)
 
@@ -445,6 +408,7 @@ lipsitz <- lipsitz(ord.output)
 
 fit_test <- as.data.frame(rbind(c(hosmer$chi.sq, hosmer$df, hosmer$p.value), c( lipsitz$LRT, lipsitz$df, lipsitz$p.value)), row.names = c('Hosmer Lemeshaw test', 'Lipsitz test'))
 
+# Table of fit measures
 kable(fit_test, caption = "Goodness-of-fit test", digits = 4,
       booktabs = TRUE, align ='c',  position = "h!", col.names = c('Chi-square', 'Df', 'P-value')) %>%
       column_spec(1,width = '4cm') %>%
@@ -456,351 +420,10 @@ kable(fit_test, caption = "Goodness-of-fit test", digits = 4,
 ```
 
 
-```{r}
-# Atumn
-
-pred1 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 1, guidance2 = 1^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-pred2 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 2, guidance2 = 2^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-pred3 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 3, guidance2 = 3^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-pred4 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 4, guidance2 = 4^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-
-pred5 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 5, guidance2 = 5^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-
-pred6 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 6, guidance2 = 6^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-
-pred7 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 7, guidance2 = 7^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-
-pred8 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 8, guidance2 = 8^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-
-pred9 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 9, guidance2 = 9^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-
-pred10 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 10, guidance2 = 10^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-
-pred11 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 11, guidance2 = 11^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-
-pred12 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 12, guidance2 = 12^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-
-pred13 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 13, guidance2 = 13^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-
-pred14 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 14, guidance2 = 14^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-
-pred15 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 15, guidance2 = 15^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-
-pred16 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 16, guidance2 = 16^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-
-pred17 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 17, guidance2 = 17^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-
-pred18 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 18, guidance2 = 18^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-
-pred19 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 19, guidance2 = 19^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-
-pred20 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 20, guidance2 = 20^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
-
-
-df_pred_atumn <- data.frame(pred.prob4 = c(pred1[4], pred2[4], pred3[4], pred4[4], pred5[4], pred6[4], pred7[4], pred8[4], pred9[4], pred10[4], pred11[4], pred12[4], pred13[4], pred14[4], pred15[4], pred16[4], pred17[4], pred18[4], pred19[4], pred20[4] ),
-                      guidance = 1:20)
-
-
-df_pred_atumn$pred.prob5 <- c(pred1[5], pred2[5], pred3[5], pred4[5], pred5[5], pred6[5], pred7[5], pred8[5], pred9[5], pred10[5], pred11[5], pred12[5], pred13[5], pred14[5], pred15[5], pred16[5], pred17[5], pred18[5], pred19[5], pred20[5] )
-
-df_pred_atumn$pred.prob2 <-  c(pred1[2], pred2[2], pred3[2], pred4[2], pred5[2], pred6[2], pred7[2], pred8[2], pred9[2], pred10[2], pred11[2], pred12[2], pred13[2], pred14[2], pred15[2], pred16[2], pred17[2], pred18[2], pred19[2], pred20[2])
-
-
-```
-
-```{r}
-# Plot atumn guidance maximum 
-
-ggplot(df_pred_atumn, aes(x=guidance, y=pred.prob4)) +
-  geom_line() +
-  geom_point() 
-
-ggplot(df_pred_atumn, aes(x=guidance, y=pred.prob2)) +
-  geom_line() +
-  geom_point() 
-
-ggplot(df_pred_atumn, aes(x=guidance, y=pred.prob5)) +
-  geom_line() +
-  geom_point() +
-  theme_gray() +
-  theme(plot.title = element_text(size = 24), axis.title = element_text(size = 24),
-        axis.text.x = element_text(size = 20), axis.text.y  = element_text(size = 20)) +
-  ylab('Predicted Pr(rating 5) ') +
-  xlab('Guidance') +
-  labs( title = 'Weather')
-
-
-```
 
 
 ```{r}
-# Boxes 
-pred1 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 1, guidance2 = 1^2, log_inf_steps = log(50), xtra_prompt = 0, atumn =0, boxes = 1))
-
-pred2 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 2, guidance2 = 2^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-pred3 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 3, guidance2 = 3^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-pred4 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 4, guidance2 = 4^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-
-pred5 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 5, guidance2 = 5^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-
-pred6 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 6, guidance2 = 6^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-
-pred7 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 7, guidance2 = 7^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-
-pred8 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 8, guidance2 = 8^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-
-pred9 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 9, guidance2 = 9^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-
-pred10 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 10, guidance2 = 10^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-
-pred11 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 11, guidance2 = 11^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-
-pred12 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 12, guidance2 = 12^2, log_inf_steps = log(50), xtra_prompt = 0,atumn = 0, boxes = 1))
-
-
-pred13 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 13, guidance2 = 13^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-
-pred14 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 14, guidance2 = 14^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-
-pred15 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 15, guidance2 = 15^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-
-pred16 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 16, guidance2 = 16^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-
-pred17 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 17, guidance2 = 17^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-
-pred18 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 18, guidance2 = 18^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-
-pred19 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 19, guidance2 = 19^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-
-pred20 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 20, guidance2 = 20^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
-
-df_pred_boxes <- data.frame(pred.prob4 = c(pred1[4], pred2[4], pred3[4], pred4[4], pred5[4], pred6[4], pred7[4], pred8[4], pred9[4], pred10[4], pred11[4], pred12[4], pred13[4], pred14[4], pred15[4], pred16[4], pred17[4], pred18[4], pred19[4], pred20[4] ),
-                      guidance = 1:20)
-
-df_pred_boxes$pred.prob5 <- c(pred1[5], pred2[5], pred3[5], pred4[5], pred5[5], pred6[5], pred7[5], pred8[5], pred9[5], pred10[5], pred11[5], pred12[5], pred13[5], pred14[5], pred15[5], pred16[5], pred17[5], pred18[5], pred19[5], pred20[5] )
-
-df_pred_boxes$pred.prob2 <-  c(pred1[2], pred2[2], pred3[2], pred4[2], pred5[2], pred6[2], pred7[2], pred8[2], pred9[2], pred10[2], pred11[2], pred12[2], pred13[2], pred14[2], pred15[2], pred16[2], pred17[2], pred18[2], pred19[2], pred20[2])
-
-```
-
-
-```{r}
-# Plot boxes guidance maximum
-
-ggplot(df_pred_boxes, aes(x=guidance, y=pred.prob4)) +
-  geom_line() +
-  geom_point()
-
-ggplot(df_pred_boxes, aes(x=guidance, y=pred.prob2)) +
-  geom_line() +
-  geom_point()
-
-ggplot(df_pred_boxes, aes(x=guidance, y=pred.prob5)) +
-  geom_line() +
-  geom_point()  +
-  theme_gray() +
-  theme(plot.title = element_text(size = 24), axis.title = element_text(size = 24),
-        axis.text.x = element_text(size = 20), axis.text.y  = element_text(size = 20)) +
-  ylab('Predicted Pr(rating 5) ') +
-  xlab('Guidance') +
-  labs( title = 'Bankruptcy')
-
-
-```
-
-```{r}
-# Housing
-
-pred1 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 1, guidance2 = 1^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-pred2 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 2, guidance2 = 2^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-pred3 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 3, guidance2 = 3^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-pred4 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 4, guidance2 = 4^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-
-pred5 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 5, guidance2 = 5^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-
-pred6 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 6, guidance2 = 6^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-
-pred7 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 7, guidance2 = 7^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-
-pred8 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 8, guidance2 = 8^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-
-pred9 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 9, guidance2 = 9^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-
-pred10 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 10, guidance2 = 10^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-
-pred11 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 11, guidance2 = 11^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-
-pred12 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 12, guidance2 = 12^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-
-pred13 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 13, guidance2 = 13^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-
-pred14 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 14, guidance2 = 14^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-
-pred15 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 15, guidance2 = 15^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-
-pred16 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 16, guidance2 = 16^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-
-pred17 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 17, guidance2 = 17^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-
-pred18 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 18, guidance2 = 18^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-
-pred19 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 19, guidance2 = 19^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-
-pred20 <- predict(ord.output, type = 'prob',
-        newdata = data.frame(guidance = 20, guidance2 = 20^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
-
-df_pred_housing <- data.frame(pred.prob4 = c(pred1[4], pred2[4], pred3[4], pred4[4], pred5[4], pred6[4], pred7[4], pred8[4], pred9[4], pred10[4], pred11[4], pred12[4], pred13[4], pred14[4], pred15[4], pred16[4], pred17[4], pred18[4], pred19[4], pred20[4] ),
-                      guidance = 1:20)
-
-df_pred_housing$pred.prob5 <- c(pred1[5], pred2[5], pred3[5], pred4[5], pred5[5], pred6[5], pred7[5], pred8[5], pred9[5], pred10[5], pred11[5], pred12[5], pred13[5], pred14[5], pred15[5], pred16[5], pred17[5], pred18[5], pred19[5], pred20[5] )
-
-df_pred_housing$pred.prob2 <-  c(pred1[2], pred2[2], pred3[2], pred4[2], pred5[2], pred6[2], pred7[2], pred8[2], pred9[2], pred10[2], pred11[2], pred12[2], pred13[2], pred14[2], pred15[2], pred16[2], pred17[2], pred18[2], pred19[2], pred20[2])
-
-df_pred_housing$pred.prob1 <-  c(pred1[1], pred2[1], pred3[1], pred4[1], pred5[1], pred6[1], pred7[1], pred8[1], pred9[1], pred10[1], pred11[1], pred12[1], pred13[1], pred14[1], pred15[1], pred16[1], pred17[1], pred18[1], pred19[1], pred20[1])
-
-```
-
-```{r}
-# Plot housing guidance maximum
-
-ggplot(df_pred_housing, aes(x=guidance, y=pred.prob4)) +
-  geom_line() +
-  geom_point()
-
-ggplot(df_pred_housing, aes(x=guidance, y=pred.prob2)) +
-  geom_line() +
-  geom_point()
-
-ggplot(df_pred_housing, aes(x=guidance, y=pred.prob1)) +
-  geom_line() +
-  geom_point()
-
-ggplot(df_pred_housing, aes(x=guidance, y=pred.prob5)) +
-  geom_line() +
-  geom_point()  +
-  theme_gray() +
-  theme(plot.title = element_text(size = 24), axis.title = element_text(size = 24),
-        axis.text.x = element_text(size = 20), axis.text.y  = element_text(size = 20)) +
-  ylab('Predicted Pr(rating 5) ') +
-  xlab('Guidance') +
-  labs( title = 'Housing market')
-```
-
-```{r}
+# Predicted hypothetical objects
 
 ind1 <- predict(ord.output, type = 'prob',
         newdata = data.frame(guidance = 10, guidance2 = 10^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
@@ -830,6 +453,8 @@ p6 <- cbind(10, "10^2", "log(50)", 0, 0, 0, round(ind6[4], 4))
 
 pred_tab <- rbind(p1, p2, p3, p4, p5, p6)
 
+
+# Table of the predicted hypothetical objects 
 kable(pred_tab, caption = "Predicted individuals",
       booktabs = TRUE, align ='c',
       col.names = c('Guidance', 'Guidance^2', 'Iterations', 'Keywords', 'AtumnD', 'BoxesD', 'Prob. rating 4'),
@@ -838,85 +463,20 @@ kable(pred_tab, caption = "Predicted individuals",
 
 ```
 
-```{r}
-df_prob <- data.frame(prob = c(ind1[4], ind2[4], ind3[4], ind4[4], ind5[4], ind6[4]), ind = 1:6)
-
-
-ggplot(df_prob, aes(x=ind, y=prob)) +
-  geom_line() +
-  geom_point()  +
-  theme_gray() +
-#  theme(plot.title = element_text(size = 24), axis.title = element_text(size = 24),
- #       axis.text.x = element_text(size = 20), axis.text.y  = element_text(size = 20)) +
-  ylab('Predicted Pr(rank 4) ') +
-  xlab('Individual') 
-```
 
 ```{r}
+# Scatterplot of the guidance maximum
 
 df_tot$fitted5 <- ord.output$fitted.values[,5]
 
 ggplot(df_tot, aes(x=guidance, y=(fitted5))) +
   geom_point()  +
   theme_gray() +
-  theme(plot.title = element_text(size = 24), axis.title = element_text(size = 22),
-        axis.text.x = element_text(size = 20), axis.text.y  = element_text(size = 20)) +
   ylab('Predicted Pr(rating 5)') +
   xlab('Guidance')  +
   theme(axis.text.x = element_text(size = 26), 
-        axis.title.y = element_text(size = 31), axis.text.y = element_text(size = 26), text= element_text(family = 'Times'))
-
-ggplot(df_tot, aes(x=inf_steps, y=(fitted5))) +
-  geom_point()  +
-  theme_gray() +
-  theme(plot.title = element_text(size = 24), axis.title = element_text(size = 22),
-        axis.text.x = element_text(size = 20), axis.text.y  = element_text(size = 20)) +
-  ylab('Predicted Pr(rating 5)') +
-  xlab('Iterations')  +
-  theme(axis.text.x = element_text(size = 26), 
-        axis.title.y = element_text(size = 31), axis.text.y = element_text(size = 26), text= element_text(family = 'Times'))
-
-ggplot(df_tot, aes(x=xtra_prompt, y=(fitted5))) +
-  geom_point()  +
-  theme_gray() +
-  theme(plot.title = element_text(size = 24), axis.title = element_text(size = 22),
-        axis.text.x = element_text(size = 20), axis.text.y  = element_text(size = 20)) +
-  ylab('Predicted Pr(rating 5)') +
-  xlab('Keywords')  +
-  theme(axis.text.x = element_text(size = 26), 
-        axis.title.y = element_text(size = 31), axis.text.y = element_text(size = 26), text= element_text(family = 'Times'))
-
-ggplot(df_tot, aes(x=atumn, y=(fitted5))) +
-  geom_point()  +
-  theme_gray() +
-  theme(plot.title = element_text(size = 24), axis.title = element_text(size = 22),
-        axis.text.x = element_text(size = 20), axis.text.y  = element_text(size = 20)) +
-  ylab('Predicted Pr(rating 5)') +
-  xlab('Weather')  +
-  theme(axis.text.x = element_text(size = 26), 
-        axis.title.y = element_text(size = 31), axis.text.y = element_text(size = 26), text= element_text(family = 'Times'))
-
-ggplot(df_tot, aes(x=boxes, y=(fitted5))) +
-  geom_point()  +
-  theme_gray() +
-  theme(plot.title = element_text(size = 24), axis.title = element_text(size = 22),
-        axis.text.x = element_text(size = 20), axis.text.y  = element_text(size = 20)) +
-  ylab('Predicted Pr(rating 5)') +
-  xlab('Bankruptcy')  +
-  theme(axis.text.x = element_text(size = 26), 
-        axis.title.y = element_text(size = 31), axis.text.y = element_text(size = 26), text= element_text(family = 'Times'))
-
-
-ggplot(df_tot, aes(x=housing, y=(fitted5))) +
-  geom_point()  +
-  theme_gray() +
-  theme(plot.title = element_text(size = 24), axis.title = element_text(size = 22),
-        axis.text.x = element_text(size = 20), axis.text.y  = element_text(size = 20)) +
-  ylab('Predicted Pr(rating 5)') +
-  xlab('Housing') +
-  theme(axis.text.x = element_text(size = 26), 
-        axis.title.y = element_text(size = 31), axis.text.y = element_text(size = 26), text= element_text(family = 'Times'))
+        axis.title = element_text(size = 30), axis.text.y = element_text(size = 26), text= element_text(family = 'Times')) +
+  scale_x_continuous(n.breaks = 10)
 
 
 ```
-
