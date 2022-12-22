@@ -368,7 +368,7 @@ kable(oddsratio, caption = "Table X Odds ratio of the coefficients", digits = 4,
 
 
 ```{r}
-## Regression continue ##
+## Regression continuation ##
 
 Nobs <- nrow(df_tot)
 
