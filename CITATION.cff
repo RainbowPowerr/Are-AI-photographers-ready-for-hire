@@ -1,5 +1,6 @@
 cff-version: 1.0.0
 message: "If you use this data or code, please cite it as below."
+type: dataset
 authors:
 - family-names: "Breuer"
   given-names: "Andrea"
