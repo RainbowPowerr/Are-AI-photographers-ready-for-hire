@@ -246,7 +246,7 @@ ggplot(rating, aes(x=scale, y=numbers )) +
   theme(axis.text.x = element_text(angle = 60, vjust = 0.5)) +
   theme_minimal() +
    ylim(0, 65) +
-  xlab('Rating of atumn') +
+  xlab('Rating of autumn') +
   ylab(NULL) +
   theme(axis.text.x = element_text(size = 26), 
         axis.title.x = element_text(size = 34), axis.text.y = element_text(size = 26), text= element_text(family = 'Times'))
@@ -268,7 +268,7 @@ ggplot(rating, aes(x=scale, y=numbers )) +
   geom_text(aes(label=numbers), position=position_dodge(width=0.9), vjust=-0.25,  size=11, family = 'Times' ) +
   theme_minimal() +
   ylim(0, 80) +
-  xlab('Rating of banruptcy') +
+  xlab('Rating of bankruptcy') +
   ylab(NULL) +
   theme(axis.text.x = element_text(size = 26), 
         axis.title.x = element_text(size = 34), axis.text.y = element_text(size = 26), text= element_text(family = 'Times'))
@@ -297,7 +297,7 @@ pub_housing <- sum(with(df_publish, prompt == 'houseing'))
 
 yes_pub <- data.frame(numbers = c(pub_atumn, pub_boxes, pub_housing), cat = c('Atumn', 'Bankruptcy', 'Housing'))
 
-ggplot(yes_pub, aes(x=cat, y=numbers )) + 
+ggplot(yes_pub, aes(x=cat, y=numbers) ) + 
   geom_bar(fill = "slategray", width = 0.7, stat = "identity", position = 'dodge') +
   geom_text(aes(label=numbers), position=position_dodge(width=0.9), vjust=-0.25, size=12, family = 'Times')  +
   theme_minimal() +
@@ -309,7 +309,6 @@ ggplot(yes_pub, aes(x=cat, y=numbers )) +
 
 
 ```
-
 
 
 ```{r}
@@ -471,11 +470,12 @@ df_tot$fitted5 <- ord.output$fitted.values[,5]
 
 ggplot(df_tot, aes(x=guidance, y=(fitted5))) +
   geom_point()  +
+  geom_smooth(se=FALSE, color = 'dodgerblue3') +
   theme_gray() +
   ylab('Predicted Pr(rating 5)') +
   xlab('Guidance')  +
-  theme(axis.text.x = element_text(size = 26), 
-        axis.title = element_text(size = 30), axis.text.y = element_text(size = 26), text= element_text(family = 'Times')) +
+  theme(axis.text.x = element_text(size = 18), 
+        axis.title = element_text(size = 22), axis.text.y = element_text(size = 18), text= element_text(family = 'Times')) +
   scale_x_continuous(n.breaks = 10)
 
 
