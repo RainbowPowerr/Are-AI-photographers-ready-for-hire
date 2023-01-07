@@ -70,8 +70,10 @@ xtra_prompt_mean <- mean(df$xtra_prompt)
 housing_mean <- mean(df$housing)
 atumn_mean <- mean(df$atumn)
 boxes_mean <- mean(df$boxes)
+pub_mean <- mean(df_tot$publish_bin)
 
-MEAN <- rbind(scale_mean, guidance_mean, inf_step_mean, xtra_prompt_mean, housing_mean, atumn_mean, boxes_mean)
+
+MEAN <- rbind(scale_mean, guidance_mean, inf_step_mean, xtra_prompt_mean, housing_mean, atumn_mean, boxes_mean, pub_mean)
 
 scale_sd <- sd(df_tot$scale_1_5)
 guidance_sd <- sd(df$guidance) 
@@ -80,8 +82,9 @@ xtra_prompt_sd <- "-"
 housing_sd <- "-"
 atumn_sd <- "-"
 boxes_sd <- "-"
+pub_sd <- '-'
 
-SD <- rbind(scale_sd, guidance_sd, inf_step_sd, xtra_prompt_sd, housing_sd, atumn_sd, boxes_sd) 
+SD <- rbind(scale_sd, guidance_sd, inf_step_sd, xtra_prompt_sd, housing_sd, atumn_sd, boxes_sd, pub_sd) 
 
 scale_min <- min(df_tot$scale_1_5)
 guidance_min <- min(df$guidance)
@@ -90,8 +93,9 @@ xtra_prompt_min <- min(df$xtra_prompt)
 housing_min <- min(df$housing)
 atumn_min <- min(df$atumn)
 boxes_min <- min(df$boxes)
+pub_min <- min(df_tot$publish_bin)
 
-MIN <- rbind(scale_min, guidance_min, inf_step_min, xtra_prompt_min, housing_min, atumn_min, boxes_min)
+MIN <- rbind(scale_min, guidance_min, inf_step_min, xtra_prompt_min, housing_min, atumn_min, boxes_min, pub_min)
 
 scale_max <- max(df_tot$scale_1_5)
 guidance_max <- max(df$guidance)
@@ -100,8 +104,9 @@ xtra_prompt_max <- max(df$xtra_prompt)
 housing_max <- max(df$housing)
 atumn_max <- max(df$atumn)
 boxes_max <- max(df$boxes)
+pub_max <- max(df_tot$publish_bin)
 
-MAX <- rbind(scale_max, guidance_max, inf_step_max, xtra_prompt_max, housing_max, atumn_max, boxes_max)
+MAX <- rbind(scale_max, guidance_max, inf_step_max, xtra_prompt_max, housing_max, atumn_max, boxes_max, pub_max)
 
 
 scale_n <- sum(with(df_tot, is.na(scale_1_5) == F))
@@ -111,8 +116,9 @@ xtra_prompt_n <- sum(with(df_tot, is.na(xtra_prompt) == F))
 housing_n <- sum(with(df_tot, is.na(housing) == F))
 atumn_n <- sum(with(df_tot, is.na(atumn) == F))
 boxes_n <- sum(with(df_tot, is.na(boxes) == F))
+pub_n <- sum(with(df_tot, is.na(publish_bin) == F))
 
-N <- rbind(scale_n, guidance_n, inf_step_n, xtra_prompt_n, housing_n, atumn_n, boxes_n)
+N <- rbind(scale_n, guidance_n, inf_step_n, xtra_prompt_n, housing_n, atumn_n, boxes_n, pub_n)
 
 scale_med <- median(df_tot$scale_1_5)
 guidance_med <- median(df$guidance)
@@ -121,14 +127,15 @@ xtra_prompt_med <- "-"
 housing_med <- "-"
 atumn_med <- "-"
 boxes_med <- "-"
+pub_med <- '-'
 
-MED <- rbind(scale_med, guidance_med, inf_step_med, xtra_prompt_med, housing_med, atumn_med, boxes_med)
+MED <- rbind(scale_med, guidance_med, inf_step_med, xtra_prompt_med, housing_med, atumn_med, boxes_med, pub_med)
 
 
-sumtab <- as.data.frame(cbind(N,MEAN, MED, SD, MIN, MAX), row.names = c('Rating', 'Guidance scale', 'Iterations', 'Keywords', 'Housing', 'Atumn', 'Bankruptcy'))
+sumtab <- as.data.frame(cbind(N,MEAN, MED, SD, MIN, MAX), row.names = c('Rating', 'Guidance scale', 'Iterations', 'Keywords', 'Housing', 'Atumn', 'Bankruptcy', 'Publishable'))
 
 sumtab$V2<- round(as.numeric(sumtab$V2), 2 )
-sumtab$V4 <- c(round(as.numeric(sumtab$V4[1:3]), 2), sumtab$V4[c(4:7)])
+sumtab$V4 <- c(round(as.numeric(sumtab$V4[1:3]), 2), sumtab$V4[c(4:8)])
 
 kable(sumtab, caption = "Table X Descriptive statistics of the dataset",
       booktabs = TRUE, align ='c', col.names = c('N', 'Mean', 'Median', 'Std. error', 'Min' , 'Max'),  position = "h!") %>%
