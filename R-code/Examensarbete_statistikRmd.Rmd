@@ -401,7 +401,6 @@ kable(prop_odds_test, caption = "Test of proportional odds assumption", digits =
 ```{r}
 ## Fit measures ##
 
-
 # Ugbas modified Mcfadden measure med log eller squared penalty
 ugba_R2 <- Rsquared(ord.output, measure = 'ugba')
 
@@ -424,7 +423,6 @@ kable(fit_test, caption = "Goodness-of-fit test", digits = 4,
    kable_styling(latex_options = "striped")
 
 ```
-
 
 
 
@@ -474,16 +472,27 @@ kable(pred_tab, caption = "Predicted individuals",
 # Scatterplot of the guidance maximum
 
 df_tot$fitted5 <- ord.output$fitted.values[,5]
+df_tot$prompt[df_tot$prompt == 'houseing'] <- 'Housing'
+df_tot$prompt[df_tot$prompt == 'weather'] <- 'Autumn'
+df_tot$prompt[df_tot$prompt == 'bankruptcy'] <- 'Bankruptcy'
+
+df_tot$xtra_prompt[df_tot$xtra_prompt == 1] <- 'Yes'
+df_tot$xtra_prompt[df_tot$xtra_prompt == 0] <- 'No'
+
 
 ggplot(df_tot, aes(x=guidance, y=(fitted5))) +
-  geom_point()  +
-  geom_smooth(se=FALSE, color = 'dodgerblue3') +
+  geom_point( aes(group = prompt, col = prompt, shape=as.character(xtra_prompt)))  +
+  geom_smooth(se=FALSE, color = 'black') +
   theme_gray() +
   ylab('Predicted Pr(rating 5)') +
   xlab('Guidance')  +
-  theme(axis.text.x = element_text(size = 18), 
-        axis.title = element_text(size = 22), axis.text.y = element_text(size = 18), text= element_text(family = 'Times')) +
-  scale_x_continuous(n.breaks = 10)
+  theme( axis.title = element_text(size = 18), axis.text = element_text(size = 14), text= element_text(family = 'Times'),
+        legend.title = element_text(size = 14), legend.text = element_text(size = 12) ) +
+  scale_x_continuous(n.breaks = 10) +
+  labs(colour='Category', shape = 'Keywords') +
+  scale_color_manual(values = c('green4', 'dodgerblue4','red3')) +
+  scale_shape_manual(values=c(16, 17))
 
 
 ```
+
