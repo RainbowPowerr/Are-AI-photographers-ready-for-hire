@@ -1,5 +1,5 @@
 cff-version: 1.0.0
-message: "If you use this data or code, please cite it as below."
+message: "If you use this data, please cite it as below."
 type: dataset
 authors:
 - family-names: "Breuer"
@@ -8,8 +8,8 @@ authors:
 - family-names: "Jonsson"
   given-names: "Isac"
   #orcid: "https://orcid.org/0000-0000-0000-0000"
-title: "Data and Code for the thesis Breaking News: Are AI-photographers ready for hire?"
+title: "Data and Code for the thesis Are AI-Photographers Ready for Hire?"
 version: 1.0.0
 #doi: 10.5281/zenodo.1234
 date-released: 2023-01-02
-url: "https://github.com/RainbowPowerr/Breaking-News-Are-AI-photographers-ready-for-hire"
+url: "https://github.com/RainbowPowerr/Are-AI-photographers-ready-for-hire"
