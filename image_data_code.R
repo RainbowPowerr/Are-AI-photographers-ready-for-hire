@@ -16,7 +16,7 @@ guidance <- round(runif(n = 1000, min = 1, max = 20), digits = 1) # rounded to o
 
 xtra_prompt <-  rbinom(n = 1000, size = 1, prob = 0.5)
 
-guide_image <-  rbinom(n = 1000, size = 1, prob = 0.5)
+guide_image <-  rbinom(n = 1000, size = 1, prob = 0.5) # NOTE! This variable is not used in the thesis!
 
 inf_steps_log_sample<- runif(n = 1000, min = log(50), max = log(250)) # the loged values are uniform dist
 
