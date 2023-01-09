@@ -1,0 +1,498 @@
+---
+title: "Bachelor thesis"
+author: "Isac Jonsson & Andrea Breuer"
+date: \today
+output: 
+#html_document
+  pdf_document:
+    keep_tex: yes 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(kableExtra) #Here I put any libraries that I will use
+library('tinytex')
+library(ggplot2)
+library(knitr)
+library('latex2exp')
+library("Lock5Data")
+library('DescTools')
+library(HSAUR)
+library('ResourceSelection')
+library('cowplot')
+library(dplyr)
+library(readxl)
+library(foreign)
+library(MASS)
+library(Hmisc)
+library(reshape2)
+library(car)
+library(ordinal)
+library(brant)
+library('gofcat')
+```
+
+```{r}
+# Loading the dataframes
+
+windowsFonts(Times=windowsFont("Times New Roman"))
+
+df <- read.csv('image_data_with_index.csv')
+
+df$housing <- ifelse(df$prompt == 'houseing', 1, 0)
+df$atumn <- ifelse(df$prompt == 'weather', 1, 0)
+df$boxes <- ifelse(df$prompt == 'bankruptcy', 1, 0)
+
+anno_df <- read_excel("Image Annotation.xlsx",  sheet = "Annotation for Newsworthy Batch")
+
+anno_df <- anno_df[1:4]
+anno_df <- na.omit(anno_df)
+colnames(anno_df) <- c('index', 'scale_1_5', 'publish', 'reason')
+anno_df$publish <- as.numeric(anno_df$publish)
+
+anno_df$publish_bin <- ifelse(anno_df$publish == 5 , 1, 0)
+
+
+
+df_tot <- merge(df, anno_df, by = 'index')
+
+
+```
+
+```{r}
+# Descriptive table 
+
+scale_mean <- mean(df_tot$scale_1_5)
+guidance_mean <- mean(df$guidance)
+inf_step_mean <- mean(df$inf_steps) 
+xtra_prompt_mean <- mean(df$xtra_prompt)
+housing_mean <- mean(df$housing)
+atumn_mean <- mean(df$atumn)
+boxes_mean <- mean(df$boxes)
+pub_mean <- mean(df_tot$publish_bin)
+
+
+MEAN <- rbind(scale_mean, guidance_mean, inf_step_mean, xtra_prompt_mean, housing_mean, atumn_mean, boxes_mean, pub_mean)
+
+scale_sd <- sd(df_tot$scale_1_5)
+guidance_sd <- sd(df$guidance) 
+inf_step_sd <- sd(df$inf_steps)
+xtra_prompt_sd <- "-"
+housing_sd <- "-"
+atumn_sd <- "-"
+boxes_sd <- "-"
+pub_sd <- '-'
+
+SD <- rbind(scale_sd, guidance_sd, inf_step_sd, xtra_prompt_sd, housing_sd, atumn_sd, boxes_sd, pub_sd) 
+
+scale_min <- min(df_tot$scale_1_5)
+guidance_min <- min(df$guidance)
+inf_step_min <- min(df$inf_steps)
+xtra_prompt_min <- min(df$xtra_prompt)
+housing_min <- min(df$housing)
+atumn_min <- min(df$atumn)
+boxes_min <- min(df$boxes)
+pub_min <- min(df_tot$publish_bin)
+
+MIN <- rbind(scale_min, guidance_min, inf_step_min, xtra_prompt_min, housing_min, atumn_min, boxes_min, pub_min)
+
+scale_max <- max(df_tot$scale_1_5)
+guidance_max <- max(df$guidance)
+inf_step_max <- max(df$inf_steps)
+xtra_prompt_max <- max(df$xtra_prompt)
+housing_max <- max(df$housing)
+atumn_max <- max(df$atumn)
+boxes_max <- max(df$boxes)
+pub_max <- max(df_tot$publish_bin)
+
+MAX <- rbind(scale_max, guidance_max, inf_step_max, xtra_prompt_max, housing_max, atumn_max, boxes_max, pub_max)
+
+
+scale_n <- sum(with(df_tot, is.na(scale_1_5) == F))
+guidance_n <- sum(with(df_tot, is.na(guidance) == F))
+inf_step_n <- sum(with(df_tot, is.na(inf_steps) == F))
+xtra_prompt_n <- sum(with(df_tot, is.na(xtra_prompt) == F))
+housing_n <- sum(with(df_tot, is.na(housing) == F))
+atumn_n <- sum(with(df_tot, is.na(atumn) == F))
+boxes_n <- sum(with(df_tot, is.na(boxes) == F))
+pub_n <- sum(with(df_tot, is.na(publish_bin) == F))
+
+N <- rbind(scale_n, guidance_n, inf_step_n, xtra_prompt_n, housing_n, atumn_n, boxes_n, pub_n)
+
+scale_med <- median(df_tot$scale_1_5)
+guidance_med <- median(df$guidance)
+inf_step_med <- median(df$inf_steps) 
+xtra_prompt_med <- "-"
+housing_med <- "-"
+atumn_med <- "-"
+boxes_med <- "-"
+pub_med <- '-'
+
+MED <- rbind(scale_med, guidance_med, inf_step_med, xtra_prompt_med, housing_med, atumn_med, boxes_med, pub_med)
+
+
+sumtab <- as.data.frame(cbind(N,MEAN, MED, SD, MIN, MAX), row.names = c('Rating', 'Guidance scale', 'Iterations', 'Keywords', 'Housing', 'Atumn', 'Bankruptcy', 'Publishable'))
+
+sumtab$V2<- round(as.numeric(sumtab$V2), 2 )
+sumtab$V4 <- c(round(as.numeric(sumtab$V4[1:3]), 2), sumtab$V4[c(4:8)])
+
+kable(sumtab, caption = "Table X Descriptive statistics of the dataset",
+      booktabs = TRUE, align ='c', col.names = c('N', 'Mean', 'Median', 'Std. error', 'Min' , 'Max'),  position = "h!") %>%
+     column_spec(1,width = '3cm') %>%
+      column_spec(2,width = '2cm') %>%
+      column_spec(3,width = '2cm') %>%
+      column_spec(4,width = '2cm') %>%
+      column_spec(5,width = '2cm') %>%
+      column_spec(6,width = '2cm') %>%
+      column_spec(7,width = '2cm') %>%
+   kable_styling(latex_options = "striped")
+
+```
+
+```{r}
+# Log-uniform distribution for Iterations
+
+ggplot(df, aes(x=inf_steps)) +
+  geom_histogram(binwidth = 5, color = "white", fill = "slategray") +
+  theme_minimal() +
+  xlab('Iterations') +
+  ylab('Frequency') +
+  coord_cartesian(expand = FALSE, xlim = c(45, 257), ylim = c(0, NA)) +
+  theme(axis.text.x = element_text(size = 26), 
+        axis.title.x = element_text(size = 34), axis.title.y = element_text(size = 34), axis.text.y = element_text(size = 26), text= element_text(family = 'Times'))
+
+```
+
+```{r}
+# Barplot of "Would you publish this image?" 
+
+real <- sum(with(df_tot, reason == 'No, not realistic enough'))
+style <- sum(with(df_tot, reason == 'No, wrong tone/style'))
+other <- sum(with(df_tot, reason == 'No, other reason'))
+comp <- sum(with(df_tot, reason == 'No, bad composition'))
+qual <- sum(with(df_tot, reason == 'No, bad image quality'))
+yes <- sum(with(df_tot, reason == 'Yes'))
+
+bars <- data.frame(numbers = c(comp, qual, real, other, style, yes))
+
+bars$text <- c('No, bad composition', 'No, bad image quality', 'No, not realistic enough', 'No, other reason', 'No, wrong tone/style', 'Yes')
+
+ggplot(bars, aes(x=text, y= numbers)) + 
+  geom_bar(fill = c("slategray", "slategray", "slategray", "slategray", "slategray", 'green4'), position = 'dodge', stat='identity', width = 0.85) +
+  coord_flip() +
+    geom_text(aes(label=numbers), position=position_dodge(width=0.9), vjust=0.5, hjust = -0.15,  size=9, family = 'Times') +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5)) +
+  ylim(0, 420) + 
+  xlab(NULL) +
+  ylab(NULL) +
+  theme(axis.text.x = element_text(size = 16), 
+        axis.title.x = element_text(size = 34), axis.text.y = element_text(size = 24), text= element_text(family = 'Times'))
+```
+
+```{r}
+# Barplot for the distribution of Rating
+
+r1 <- sum(with(df_tot, scale_1_5 == 1))
+r2 <- sum(with(df_tot, scale_1_5 == 2))
+r3 <- sum(with(df_tot, scale_1_5 == 3))
+r4 <- sum(with(df_tot, scale_1_5 == 4))
+r5 <- sum(with(df_tot, scale_1_5 == 5))
+
+rating <- data.frame(numbers = c(r1, r2, r3, r4, r5), scale = 1:5)
+
+ggplot(rating, aes(x=scale, y=numbers )) + 
+  geom_bar(fill = "slategray", width = 0.7, stat = "identity", position = 'dodge') +
+  geom_text(aes(label=numbers), position=position_dodge(width=0.9), vjust=-0.25,  size=11, family = 'Times') +
+  theme(axis.text.x = element_text(angle = 60, vjust = 0.5)) +
+  theme_minimal() +
+   ylim(0, 180) +
+  xlab('Rating') +
+  ylab(NULL) +
+  theme(axis.text.x = element_text(size = 26), 
+        axis.title.x = element_text(size = 34), axis.text.y = element_text(size = 26), text= element_text(family = 'Times'))
+
+```
+```{r}
+# Barplot of rating for housing
+
+r1 <- sum(with(df_tot[df_tot$housing == 1,], scale_1_5 == 1))
+r2 <- sum(with(df_tot[df_tot$housing == 1,], scale_1_5 == 2))
+r3 <- sum(with(df_tot[df_tot$housing == 1,], scale_1_5 == 3))
+r4 <- sum(with(df_tot[df_tot$housing == 1,], scale_1_5 == 4))
+r5 <- sum(with(df_tot[df_tot$housing == 1,], scale_1_5 == 5))
+
+rating <- data.frame(numbers = c(r1, r2, r3, r4, r5), scale = 1:5)
+
+ggplot(rating, aes(x=scale, y=numbers )) + 
+  geom_bar(fill = "slategray", width = 0.7, stat = "identity", position = 'dodge') +
+  geom_text(aes(label=numbers), position=position_dodge(width=0.9), vjust=-0.25,  size=11, family = 'Times') +
+  theme(axis.text.x = element_text(angle = 60, vjust = 0.5)) +
+  theme_minimal() +
+   ylim(0, 100) +
+  xlab('Rating of housing') +
+  ylab(NULL) +
+  theme(axis.text.x = element_text(size = 26), 
+        axis.title.x = element_text(size = 34), axis.text.y = element_text(size = 26), text= element_text(family = 'Times'))
+
+```
+```{r}
+# Barplot of rating for atumn
+r1 <- sum(with(df_tot[df_tot$atumn == 1,], scale_1_5 == 1))
+r2 <- sum(with(df_tot[df_tot$atumn == 1,], scale_1_5 == 2))
+r3 <- sum(with(df_tot[df_tot$atumn == 1,], scale_1_5 == 3))
+r4 <- sum(with(df_tot[df_tot$atumn == 1,], scale_1_5 == 4))
+r5 <- sum(with(df_tot[df_tot$atumn == 1,], scale_1_5 == 5))
+
+rating <- data.frame(numbers = c(r1, r2, r3, r4, r5), scale = 1:5)
+
+ggplot(rating, aes(x=scale, y=numbers )) + 
+  geom_bar(fill = "slategray", width = 0.7, stat = "identity", position = 'dodge') +
+  geom_text(aes(label=numbers), position=position_dodge(width=0.9), vjust=-0.25,  size=11, family = 'Times') +
+  theme(axis.text.x = element_text(angle = 60, vjust = 0.5)) +
+  theme_minimal() +
+   ylim(0, 65) +
+  xlab('Rating of autumn') +
+  ylab(NULL) +
+  theme(axis.text.x = element_text(size = 26), 
+        axis.title.x = element_text(size = 34), axis.text.y = element_text(size = 26), text= element_text(family = 'Times'))
+```
+
+```{r}
+# Barplot of rating for bankruptcy
+
+r1 <- sum(with(df_tot[df_tot$boxes == 1,], scale_1_5 == 1))
+r2 <- sum(with(df_tot[df_tot$boxes == 1,], scale_1_5 == 2))
+r3 <- sum(with(df_tot[df_tot$boxes == 1,], scale_1_5 == 3))
+r4 <- sum(with(df_tot[df_tot$boxes == 1,], scale_1_5 == 4))
+r5 <- sum(with(df_tot[df_tot$boxes == 1,], scale_1_5 == 5))
+
+rating <- data.frame(numbers = c(r1, r2, r3, r4, r5), scale = 1:5)
+
+ggplot(rating, aes(x=scale, y=numbers )) + 
+  geom_bar(fill = "slategray", width = 0.7, stat = "identity", position = 'dodge') +
+  geom_text(aes(label=numbers), position=position_dodge(width=0.9), vjust=-0.25,  size=11, family = 'Times' ) +
+  theme_minimal() +
+  ylim(0, 80) +
+  xlab('Rating of bankruptcy') +
+  ylab(NULL) +
+  theme(axis.text.x = element_text(size = 26), 
+        axis.title.x = element_text(size = 34), axis.text.y = element_text(size = 26), text= element_text(family = 'Times'))
+```
+
+```{r}
+# Barplot of number of publishable images per category
+
+# Split dfs 
+df_atumn <- df_tot[(df_tot$atumn == 1),]
+df_housing <- df_tot[(df_tot$housing == 1),]
+df_boxes <- df_tot[(df_tot$boxes == 1),]
+df_atbox <- df_tot[(df_tot$atumn == 1| (df_tot$boxes == 1)),]
+
+# Dataset with images that were pubilshed
+
+df_publish <- df_tot[df_tot$publish_bin == 1, ]
+
+df_housing_4 <- df_housing[df_housing$scale_1_5 == 4,]
+
+df_worst <- df_tot[df_tot$scale_1_5 == 1,]
+
+pub_atumn <- sum(with(df_publish, prompt == 'weather'))
+pub_boxes <- sum(with(df_publish, prompt == 'bankruptcy'))
+pub_housing <- sum(with(df_publish, prompt == 'houseing'))
+
+yes_pub <- data.frame(numbers = c(pub_atumn, pub_boxes, pub_housing), cat = c('Atumn', 'Bankruptcy', 'Housing'))
+
+ggplot(yes_pub, aes(x=cat, y=numbers) ) + 
+  geom_bar(fill = "slategray", width = 0.7, stat = "identity", position = 'dodge') +
+  geom_text(aes(label=numbers), position=position_dodge(width=0.9), vjust=-0.25, size=12, family = 'Times')  +
+  theme_minimal() +
+  ylim(0, 15) +
+  xlab(NULL) +
+  ylab("Publishable images") +
+  theme(axis.text.x = element_text(size = 26), 
+        axis.title.y = element_text(size = 34), axis.text.y = element_text(size = 26), text= element_text(family = 'Times'))
+
+
+```
+
+
+```{r}
+# Korrelationsmatris
+
+cormat <- cor(df_tot[c(10,4:9)])
+
+kable(cormat, caption = "Table X Correlation matrix of the variables", digits = 4,
+      booktabs = TRUE, align ='c',  position = "h!") %>%
+   kable_styling(latex_options = "striped")
+
+```
+
+
+```{r}
+### Ordinal regression ###
+
+# df_tot
+df_tot$guidance2 <- df_tot$guidance^2
+df_tot$log_inf_steps <- log(df_tot$inf_steps)
+df_tot$scale_1_5 <- as.factor(df_tot$scale_1_5)
+df_tot$log_inf_steps <- log(df_tot$inf_steps)
+
+# Ordinal regression
+ord.output <- polr(scale_1_5 ~ guidance + guidance2 + log_inf_steps + xtra_prompt + atumn + boxes,
+                   data = df_tot, Hess = T)
+
+ctable <- coef(summary(ord.output))
+p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) * 2
+ctable <- cbind(ctable, "p value" = p)
+ctable <- ctable[,c(1:2, 4)]
+
+# Regression table
+kable(ctable, caption = "Table X Ordinal logistic regression results", digits = 4,
+      booktabs = TRUE, align ='c',  position = "h!", col.names = c('Estimate', 'Std. error', 'P-value')) %>%
+     column_spec(1,width = '3cm') %>%
+      column_spec(2,width = '2cm') %>%
+      column_spec(3,width = '2cm') %>%
+      column_spec(4,width = '2cm') %>%
+   kable_styling(latex_options = "striped")
+
+```
+
+
+
+```{r}
+# Odds ratio
+oddsratio <- exp(ord.output$coefficients)
+
+kable(oddsratio, caption = "Table X Odds ratio of the coefficients", digits = 4,
+      booktabs = TRUE, align ='c',  position = "h!", col.names = 'Odds ratio') %>%
+     column_spec(1,width = '3cm') %>%
+      column_spec(2,width = '2cm') %>%
+   kable_styling(latex_options = "striped")
+```
+
+
+```{r}
+## Regression continuation ##
+
+Nobs <- nrow(df_tot)
+
+# Proportional odds test 
+clm.model <- clm(scale_1_5 ~ guidance + guidance2 + log_inf_steps + xtra_prompt + atumn + boxes,
+                   data = df_tot)
+
+prop_test1 <- nominal_test(clm.model)
+
+
+prop_test2 <- brant(ord.output)
+
+prop_odds_test <- cbind(prop_test1[5], prop_test2[,3])
+
+kable(prop_odds_test, caption = "Test of proportional odds assumption", digits = 4,
+      booktabs = TRUE, align ='c',  position = "h!", col.names = c('Nominal test', 'Brant test')) %>%
+      column_spec(1,width = '3cm') %>%
+      column_spec(2,width = '3cm') %>%
+      column_spec(2,width = '3cm') %>%
+   kable_styling(latex_options = "striped")
+
+```
+
+```{r}
+## Fit measures ##
+
+# Ugbas modified Mcfadden measure med log eller squared penalty
+ugba_R2 <- Rsquared(ord.output, measure = 'ugba')
+
+
+# Hosmer–Lemeshow test
+hosmer <- hosmerlem(ord.output)
+
+# Lipsitz likelihood-ratio test
+lipsitz <- lipsitz(ord.output)
+
+fit_test <- as.data.frame(rbind(c(hosmer$chi.sq, hosmer$df, hosmer$p.value), c( lipsitz$LRT, lipsitz$df, lipsitz$p.value)), row.names = c('Hosmer Lemeshaw test', 'Lipsitz test'))
+
+# Table of fit measures
+kable(fit_test, caption = "Goodness-of-fit test", digits = 4,
+      booktabs = TRUE, align ='c',  position = "h!", col.names = c('Chi-square', 'Df', 'P-value')) %>%
+      column_spec(1,width = '4cm') %>%
+      column_spec(2,width = '3cm') %>%
+      column_spec(3,width = '3cm') %>%
+      column_spec(4,width = '3cm') %>%
+   kable_styling(latex_options = "striped")
+
+```
+
+
+
+```{r}
+# Predicted hypothetical objects
+
+ind1 <- predict(ord.output, type = 'prob',
+        newdata = data.frame(guidance = 10, guidance2 = 10^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
+
+ind2 <- predict(ord.output, type = 'prob',
+        newdata = data.frame(guidance = 3, guidance2 = 3^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 1, boxes = 0))
+
+ind3 <- predict(ord.output, type = 'prob',
+        newdata = data.frame(guidance = 10, guidance2 = 10^2, log_inf_steps = log(150), xtra_prompt = 0, atumn = 1, boxes = 0))
+
+ind4 <- predict(ord.output, type = 'prob',
+        newdata = data.frame(guidance = 10, guidance2 = 10^2, log_inf_steps = log(50), xtra_prompt = 1, atumn = 1, boxes = 0))
+
+ind5 <- predict(ord.output, type = 'prob',
+        newdata = data.frame(guidance = 10, guidance2 = 10^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 1))
+
+ind6 <- predict(ord.output, type = 'prob',
+        newdata = data.frame(guidance = 10, guidance2 = 10^2, log_inf_steps = log(50), xtra_prompt = 0, atumn = 0, boxes = 0))
+
+
+p1 <- cbind(10, "10^2", "log(50)", 0, 1, 0, round(ind1[4], 4))
+p2 <- cbind(3, "3^2", "log(50)", 0, 1, 0, round(ind2[4], 4))
+p3 <- cbind(10, "10^2", "log(150)", 0, 1, 0, round(ind3[4], 4))
+p4 <- cbind(10, "10^2", "log(50)", 1, 1, 0, round(ind4[4], 4))
+p5 <- cbind(10, "10^2", "log(50)", 0, 0, 1, round(ind5[4], 4))
+p6 <- cbind(10, "10^2", "log(50)", 0, 0, 0, round(ind6[4], 4))
+
+pred_tab <- rbind(p1, p2, p3, p4, p5, p6)
+
+
+# Table of the predicted hypothetical objects 
+kable(pred_tab, caption = "Predicted individuals",
+      booktabs = TRUE, align ='c',
+      col.names = c('Guidance', 'Guidance^2', 'Iterations', 'Keywords', 'AtumnD', 'BoxesD', 'Prob. rating 4'),
+      position = "h!") %>%
+   kable_styling(latex_options = "striped")
+
+```
+
+
+```{r}
+# Scatterplot of the guidance maximum
+
+df_tot$fitted5 <- ord.output$fitted.values[,5]
+df_tot$prompt[df_tot$prompt == 'houseing'] <- 'Housing'
+df_tot$prompt[df_tot$prompt == 'weather'] <- 'Autumn'
+df_tot$prompt[df_tot$prompt == 'bankruptcy'] <- 'Bankruptcy'
+
+df_tot$xtra_prompt[df_tot$xtra_prompt == 1] <- 'Yes'
+df_tot$xtra_prompt[df_tot$xtra_prompt == 0] <- 'No'
+
+
+ggplot(df_tot, aes(x=guidance, y=(fitted5))) +
+  geom_point( aes(group = prompt, col = prompt, shape=as.character(xtra_prompt)))  +
+  geom_smooth(se=FALSE, color = 'black') +
+  theme_gray() +
+  ylab('Predicted Pr(rating 5)') +
+  xlab('Guidance')  +
+  theme( axis.title = element_text(size = 18), axis.text = element_text(size = 14), text= element_text(family = 'Times'),
+        legend.title = element_text(size = 14), legend.text = element_text(size = 12) ) +
+  scale_x_continuous(n.breaks = 10) +
+  labs(colour='Category', shape = 'Keywords') +
+  scale_color_manual(values = c('green4', 'dodgerblue4','red3')) +
+  scale_shape_manual(values=c(16, 17))
+
+
+```
+
