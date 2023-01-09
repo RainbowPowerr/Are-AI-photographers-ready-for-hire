@@ -62,9 +62,5 @@ df_index <- data.frame(index = index_id,
                  xtra_prompt = xtra_prompt_id)
 
 # save df as a .csv
-write.csv(df, file = "image_data.csv")
-
-write.csv(index, file = "index.csv")
-
 write.csv(df_index, file = "image_data_with_index.csv")
 
