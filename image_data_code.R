@@ -20,7 +20,7 @@ guide_image <-  rbinom(n = 1000, size = 1, prob = 0.5)
 
 inf_steps_log_sample<- runif(n = 1000, min = log(50), max = log(250)) # the loged values are uniform dist
 
-inf_steps<- round(exp(inf_steps_log_sample), digits = 0) # raise to the power of e to remove the log
+inf_steps<- round(exp(inf_steps_log_sample), digits = 0) # raise e to the power of the values to remove the log transformation
 # this makes lower values of inf_steps more probable (i.e we have a skewed distribution)
 # There is more info in the lower values that the higher values -> easier to extrapolate info from high values
 # round the numbers to closest integer.
@@ -34,24 +34,21 @@ df <- data.frame(prompt = prompt_sample,
                  xtra_prompt = xtra_prompt,
                  guide_image_bin = guide_image)
 
-# create a help variable that tells which (if any) guide image should be used
+# create a help variable that tells which (if any) guide image should be used (NOTE! This variable is not used in the thesis!)
 df$image <- NA
 df$image[df$prompt == "weather" & df$guide_image_bin == 1] <- "forest"
 df$image[df$prompt == "bankruptcy" & df$guide_image_bin == 1] <- "boxes"
 df$image[df$prompt == "houseing" & df$guide_image_bin == 1] <- "coinstack"
 df$image[ df$guide_image_bin == 0] <- "none"
 
-#inf_steps<- round(runif(n = 100, min = 50, max = 250), digits = 0)
-
-
-#skapar ett index
+#creating an index
 df$index <- NA
 df$index <- 0:999
 
-# plockar ut de observationer utan guide_image
+# remove images that do not contain the variable guide_image (Since the variable is not included in the thesis)
 index<- df$index[df$image == "none"]
 
-#Skapar ny df med obs utan guide image
+# Create new df without "guide_image"
 index_id<- df$index[df$image == "none"]
 prompt_id<- df$prompt[df$image == "none"]
 guidance_id<- df$guidance[df$image == "none"]
