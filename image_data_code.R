@@ -1,6 +1,6 @@
-setwd("~/Documents/Uppsala universitet/T8 22 HT/Examensarbete/R kod")
 
-# simulation test
+
+# simulation 
 
 # a vector with the promt-names
 promt <- c("weather", "bankruptcy", "houseing")
