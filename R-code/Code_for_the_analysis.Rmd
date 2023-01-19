@@ -302,7 +302,7 @@ pub_atumn <- sum(with(df_publish, prompt == 'weather'))
 pub_boxes <- sum(with(df_publish, prompt == 'bankruptcy'))
 pub_housing <- sum(with(df_publish, prompt == 'houseing'))
 
-yes_pub <- data.frame(numbers = c(pub_atumn, pub_boxes, pub_housing), cat = c('Atumn', 'Bankruptcy', 'Housing'))
+yes_pub <- data.frame(numbers = c(pub_atumn, pub_boxes, pub_housing), cat = c('Autumn', 'Bankruptcy', 'Housing'))
 
 ggplot(yes_pub, aes(x=cat, y=numbers) ) + 
   geom_bar(fill = "slategray", width = 0.7, stat = "identity", position = 'dodge') +
